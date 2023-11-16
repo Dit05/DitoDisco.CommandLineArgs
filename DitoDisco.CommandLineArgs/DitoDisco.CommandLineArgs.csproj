@@ -12,6 +12,7 @@
 
   <PropertyGroup>
     <PackageId>DitoDisco.CommandLineArgs</PackageId>
+    <PackageTags>commandline;arguments;parsing;posix</PackageTags>
     <Version>1.0.0-pre</Version>
     <Authors>Dit05</Authors>
     <Product>DitoDisco command line argument helper</Product>
