@@ -113,5 +113,18 @@ namespace DitoDisco.CommandLineArgs.Tests {
             Assert.Fail();
         }
 
+        [Test]
+        public void OptionalAtEndTest() {
+            var optional = new Option(ValueExpectation.Optional, "o");
+
+            var args = new string[] { "-o" };
+
+            var clOpts = new CommandLineOptions(args, new Option[] { optional });
+
+            Assert.That(clOpts.PositionalArguments, Is.Empty);
+            Assert.That(clOpts.Options.ContainsKey(optional));
+            Assert.That(clOpts.Options[optional], Is.Null);
+        }
+
     }
 }

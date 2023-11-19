@@ -231,7 +231,10 @@ namespace DitoDisco.CommandLineArgs {
                 }
             }
 
-            if(is_shortopt_value_required()) throw new CommandLineParseException($"{OptionPrefix}{shortOptName}: Expected value.");
+            if(shortOptToAssign != null) {
+                if(shortOptToAssign.valueExpectation == ValueExpectation.Required) throw new CommandLineParseException($"{OptionPrefix}{shortOptName}: Expected value.");
+                else assign_option(shortOptToAssign, null, shortOptName);
+            }
 
             options = ImmutableDictionary.CreateRange<Option, string?>(optValues);
             positionalArguments = ImmutableArray.CreateRange<string>(posArgs);
