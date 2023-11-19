@@ -186,6 +186,8 @@ namespace DitoDisco.CommandLineArgs {
                     if(shortOptToAssign != null) {
                         if(shortOptToAssign.valueExpectation == ValueExpectation.Required) throw new CommandLineParseException($"{OptionPrefix}{shortOptName}: Expected value, found option list terminator.");
                         else assign_option(shortOptToAssign, null, shortOptName);
+
+                        shortOptToAssign = null;
                     }
 
                     while(enumerator.MoveNext()) {
