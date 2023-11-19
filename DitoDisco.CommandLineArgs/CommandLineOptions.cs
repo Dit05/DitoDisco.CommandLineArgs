@@ -9,13 +9,14 @@ namespace DitoDisco.CommandLineArgs {
 
     /// <summary>
     /// Represents parsed command line arguments organized as "options" with optional values, and "positional arguments".
-    /// This type is immutable.
+    /// Instances of this type are immutable.
     /// </summary>
     public sealed class CommandLineOptions {
 
         /// <returns>Whether <paramref name="rune"/> is allowed in the name of an option.</returns>
         public static bool IsRuneAllowedInOptionName(Rune rune) => Rune.IsLetter(rune) || Rune.IsDigit(rune) || (rune.IsAscii && "-_".Contains((char)rune.Value));
 
+        /// <returns>A string describing the rune's Unicode scalar value if it's whitespace or a control character, or the rune itself in single quotes.</returns>
         static string RuneToReadableString(Rune rune) {
             if(Rune.IsControl(rune) || Rune.IsWhiteSpace(rune)) {
                 return $"(Unicode scalar {rune.Value})";
@@ -36,21 +37,25 @@ namespace DitoDisco.CommandLineArgs {
         }
 
 
+        /// <summary>Any arguments after this are positional and won't be interpreted as options.</summary>
         public static readonly string OptionListTerminator = "--";
+        /// <summary>Prefix for short options or clusters of them.</summary>
         public static readonly char OptionPrefix = '-';
+        /// <summary>Prefix for long options.</summary>
         public static readonly string LongOptionPrefix = "--";
-        private static readonly Rune EqualsRune = new Rune('=');
+
+        private static readonly Rune EqualsRune = new Rune('='); // '=' as a rune so that it doesn't have to be converted every time
 
 
         //
 
 
         readonly ImmutableDictionary<Option, string?> options;
-        /// <summary>Dictionary of options present and their values. Their value is null if they don't accept one or they optionally accept one and no value is present.</summary>
+        /// <summary>Dictionary of options present and their values. Their value is null if they don't accept one, or if they optionally accept one and no value is present.</summary>
         public IReadOnlyDictionary<Option, string?> Options => options;
 
         readonly ImmutableArray<string> positionalArguments;
-        /// <summary>Array of positional arguments. Every argument that is not an option or the value of an option or the first "--" is a positional argument.</summary>
+        /// <summary>Array of positional arguments. Every argument that is not an option or the value of an option or the first option terminator is a positional argument.</summary>
         public IReadOnlyList<string> PositionalArguments => positionalArguments;
 
 
@@ -106,7 +111,7 @@ namespace DitoDisco.CommandLineArgs {
                 }
             }
 
-            // -abcd [value (the next argument, potentially)]
+            // -abcd and the next argument is the value, or -abcd and bcd is the value.
             void parse_short(ReadOnlySpan<Rune> arg /* Guaranteed to be at least 2 chars long at call site. */) {
                 arg = arg.Slice(start: 1); // Skip the option prefix
 
@@ -197,6 +202,7 @@ namespace DitoDisco.CommandLineArgs {
                 }
 
 
+                // Converts arg into a span of runes
                 ReadOnlySpan<Rune> make_runes_span(bool stopOnEquals) {
                     var list = new List<Rune>(arg.EnumerateRunes());
 
@@ -217,12 +223,15 @@ namespace DitoDisco.CommandLineArgs {
 
 
                 if(arg.StartsWith(LongOptionPrefix)) {
+                    // Long
                     if(is_shortopt_value_required()) throw new CommandLineParseException($"{OptionPrefix}{shortOptName}: Expected value, found a long option.");
                     parse_long(make_runes_span(stopOnEquals: true));
                 } else if(arg.StartsWith(OptionPrefix) && arg.Length > 1 /* "-" counts as a positional argument */) {
+                    // Short
                     if(is_shortopt_value_required()) throw new CommandLineParseException($"{OptionPrefix}{shortOptName}: Expected value, found an option.");
                     parse_short(make_runes_span(stopOnEquals: false));
                 } else {
+                    // Positional, or the value of the previous short option
                     if(shortOptToAssign != null && shortOptToAssign.valueExpectation != ValueExpectation.NotAllowed) {
                         assign_option(shortOptToAssign, arg, shortOptName);
                         shortOptToAssign = null;
@@ -233,6 +242,7 @@ namespace DitoDisco.CommandLineArgs {
                 }
             }
 
+            // Short option at the very end
             if(shortOptToAssign != null) {
                 if(shortOptToAssign.valueExpectation == ValueExpectation.Required) throw new CommandLineParseException($"{OptionPrefix}{shortOptName}: Expected value.");
                 else assign_option(shortOptToAssign, null, shortOptName);
